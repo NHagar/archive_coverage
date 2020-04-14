@@ -7,6 +7,8 @@ from zipfile import ZipFile
 from newsapi import NewsApiClient
 
 def archive_query(domain, start_date, end_date):
+    start_date = 10000*start_date.year + 100*start_date.month + start_date.day
+    end_date = 10000*end_date.year + 100*end_date.month + end_date.day
     url = 'https://web.archive.org/cdx/search/cdx'
     params = {"url": domain,
             "matchType": "domain",
@@ -20,8 +22,7 @@ def archive_query(domain, start_date, end_date):
 
 def gdelt_query(domain, start_date, end_date):
     url = 'http://data.gdeltproject.org/events/'
-    # TODO: generate date range
-    date_range = []
+    date_range = pd.date_range(start=start_date, end=end_date)
     date_range_encoded = [10000*dt_time.year + 100*dt_time.month + dt_time.day for dt_time in date_range]
     uris = ['{}.export.CSV.zip'.format(i) for i in date_range_encoded]
     urls = ['{0}{1}'.format(url, i) for i in uris]
@@ -50,14 +51,24 @@ def newsapi_query(domain, start_date, end_date, api_key):
     return all_articles
 
 
-def mediacloud_query(domain, start_date, end_date, api_key):
+def mediacloud_query(media_id, start_date, end_date, api_key):
     mc = mediacloud.api.MediaCloud(api_key)
-    # TODO: query domain ID
-    stories = mc.storyCount(domain, 
-                            solr_filter=mc.publish_date_query(start_date, end_date)
-                            )
+    all_stories = []
+    last_processed_stories_id = 0
+    while True:
+        stories = mc.storyList(media_id, 
+                                solr_filter=mc.publish_date_query(start_date, end_date),
+                                rows=1000,
+                                last_processed_stories_id=last_processed_stories_id
+                                )
+        if len(stories)==0:
+            break
+        all_stories.extend(stories)
+        
+        last_processed_stories_id = all_stories[-1]['processed_stories_id']
+        print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
 
-    return stories
+    return all_stories
 
 
 def cc_query(domain, start_date, end_date):
