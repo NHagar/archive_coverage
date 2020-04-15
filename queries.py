@@ -37,3 +37,6 @@ r = query_downloads.mediacloud_query("media_id:1", start_date, end_date, os.envi
 
 
 # %%
+r = query_downloads.cc_query("cnn.com", start_date, end_date)
+
+# %%

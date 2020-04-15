@@ -5,6 +5,8 @@ from urllib.request import urlopen
 from io import BytesIO
 from zipfile import ZipFile
 from newsapi import NewsApiClient
+from bs4 import BeautifulSoup
+from warcio.archiveiterator import ArchiveIterator
 
 def archive_query(domain, start_date, end_date):
     start_date = 10000*start_date.year + 100*start_date.month + start_date.day
@@ -72,4 +74,26 @@ def mediacloud_query(media_id, start_date, end_date, api_key):
 
 
 def cc_query(domain, start_date, end_date):
-    ""
+    year = str(start_date.year)
+    month = str(start_date.month)
+    month = month if len(month)>1 else "0{}".format(month)
+    cc_files = requests.get("https://commoncrawl.s3.amazonaws.com/?prefix=crawl-data/CC-NEWS/{0}/{1}".format(year, month))
+    soup = BeautifulSoup(cc_files.text)
+    urls = ["https://commoncrawl.s3.amazonaws.com/{}".format(i.text) for i in soup.find_all("key")]
+    results = [get_records(i, domain) for i in urls]
+    results = [i for l in results for i in l]
+
+    return results
+
+
+def get_records(url, domain):
+    resp = requests.get(url, stream=True)
+    records = []
+
+    for record in ArchiveIterator(resp.raw, arc2warc=True):
+        if record.rec_type == 'response':
+            if record.http_headers.get_header('Content-Type') == 'text/html':
+                uri = record.rec_headers.get_header('WARC-Target-URI')
+                if domain in uri:
+                    records.append(uri)
+    return records
