@@ -13,6 +13,23 @@ load_dotenv()
 # %%
 start_date = datetime.strptime("2020-03-16", "%Y-%m-%d")
 end_date = datetime.strptime("2020-03-31", "%Y-%m-%d")
+domain = "nytimes.com"
+
+# %%
+def get_responses(domain, start_date, end_date):
+    wayback = query_downloads.archive_query(domain, start_date, end_date)
+    gdelt = query_downloads.gdelt(domain, start_date, end_date)
+    newsapi = query_downloads.newsapi_query(domain, start_date, end_date)
+    mediacloud = query_downloads.mediacloud(domain, start_date, end_date)
+
+    results = {
+        "wayback": wayback,
+        "gdelt": gdelt,
+        "newsapi": newsapi,
+        "mediacloud": mediacloud
+    }
+
+    return results
 
 
 # %%
