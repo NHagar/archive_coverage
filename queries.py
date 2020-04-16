@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # %%
-start_date = datetime.strptime("2020-03-01", "%Y-%m-%d")
+start_date = datetime.strptime("2020-03-16", "%Y-%m-%d")
 end_date = datetime.strptime("2020-03-31", "%Y-%m-%d")
 
 
@@ -22,9 +22,8 @@ r = query_downloads.archive_query("nytimes.com", start_date, end_date)
 # %%
 r = query_downloads.gdelt_query("nytimes.com", start_date, end_date)
 
-
 # %%
-r = query_downloads.newsapi_query("nytimes.com", datetime.strftime(start_date, "%Y-%m-%d"), datetime.strftime(end_date, "%Y-%m-%d"), os.environ["API_KEY_NEWS"])
+r = query_downloads.newsapi_query("cnn.com", datetime.strftime(start_date, "%Y-%m-%d"), datetime.strftime(end_date, "%Y-%m-%d"), os.environ["API_KEY_NEWS"])
 
 # %%
 mc_sources = pd.read_csv("./data/mediacloud_sources.csv")
@@ -38,5 +37,3 @@ r = query_downloads.mediacloud_query("media_id:1", start_date, end_date, os.envi
 
 # %%
 r = query_downloads.cc_query("cnn.com", start_date, end_date)
-
-# %%

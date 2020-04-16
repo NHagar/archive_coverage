@@ -19,7 +19,10 @@ def archive_query(domain, start_date, end_date):
             "output": "json"}
     headers = {"user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"}
     response = requests.get(url, params=params, headers=headers).json()
-    return response
+    results = [{"timestamp": i[1], "url": i[2]} for i in response[1:]]
+    results = pd.DataFrame(results)
+
+    return results
 
 
 def gdelt_query(domain, start_date, end_date):
@@ -37,7 +40,8 @@ def gdelt_query(domain, start_date, end_date):
         filename = zipfile.namelist()[0]
         df = pd.read_csv(zipfile.open(filename), sep='\t', header=None)
         nyt_links = df[df[57].str.contains('www.nytimes')][57]
-        df_filtered = pd.DataFrame({'urls': nyt_links, 'date': filename})
+        df_filtered = pd.DataFrame({'url': nyt_links, 'timestamp': filename})
+        df_filtered.loc[:, 'timestamp'] = df_filtered['timestamp'].map(lambda x: x.split(".")[0])
         df_all.append(df_filtered)
     
     df_all = pd.concat(df_all).drop_duplicates()
@@ -49,8 +53,9 @@ def newsapi_query(domain, start_date, end_date, api_key):
     all_articles = newsapi.get_everything(domains=domain,
                                           from_param=start_date,
                                           to=end_date)
-    
-    return all_articles
+    article_info = all_articles['articles']
+    article_info = pd.DataFrame(article_info)
+    return article_info
 
 
 def mediacloud_query(media_id, start_date, end_date, api_key):
@@ -69,8 +74,9 @@ def mediacloud_query(media_id, start_date, end_date, api_key):
         
         last_processed_stories_id = all_stories[-1]['processed_stories_id']
         print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
-
-    return all_stories
+    stories_df = pd.DataFrame(all_stories)
+    stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
+    return stories_df
 
 
 def cc_query(domain, start_date, end_date):
