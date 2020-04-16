@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import requests
 import pandas as pd
 import mediacloud.api
@@ -7,6 +8,7 @@ from zipfile import ZipFile
 from newsapi import NewsApiClient
 from bs4 import BeautifulSoup
 from warcio.archiveiterator import ArchiveIterator
+from newsapi import newsapi_exception
 
 def archive_query(domain, start_date, end_date):
     start_date = 10000*start_date.year + 100*start_date.month + start_date.day
@@ -47,12 +49,19 @@ def gdelt_query(domain, start_date, end_date):
     df_all = pd.concat(df_all).drop_duplicates()
     return df_all
 
-
+# TODO: Implement pagination to get all results
 def newsapi_query(domain, start_date, end_date, api_key):
     newsapi = NewsApiClient(api_key=api_key)
-    all_articles = newsapi.get_everything(domains=domain,
-                                          from_param=start_date,
-                                          to=end_date)
+    try:
+        all_articles = newsapi.get_everything(domains=domain,
+                                            from_param=start_date,
+                                            to=end_date)
+    except newsapi_exception.NewsAPIException as e:
+        new_start_date = datetime.now().date() - timedelta(days=31)
+        print("Too far back for free plan. Collecting articles from {} to end.".format(datetime.strftime(new_start_date, "%Y-%m-%d")))
+        all_articles = newsapi.get_everything(domains=domain,
+                                            from_param=new_start_date,
+                                            to=end_date)
     article_info = all_articles['articles']
     article_info = pd.DataFrame(article_info)
     return article_info

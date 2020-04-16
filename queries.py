@@ -1,6 +1,6 @@
 # %%
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 
@@ -11,16 +11,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # %%
-start_date = datetime.strptime("2020-03-16", "%Y-%m-%d")
+start_date = datetime.strptime("2020-03-01", "%Y-%m-%d")
 end_date = datetime.strptime("2020-03-31", "%Y-%m-%d")
-domain = "nytimes.com"
+domain = "foxnews.com"
+news_key = os.environ["API_KEY_NEWS"]
+mc_key = os.environ["API_KEY_MC"]
 
 # %%
 def get_responses(domain, start_date, end_date, news_api_key, mc_key):
     wayback = query_downloads.archive_query(domain, start_date, end_date)
-    gdelt = query_downloads.gdelt(domain, start_date, end_date)
+    gdelt = query_downloads.gdelt_query(domain, start_date, end_date)
     newsapi = query_downloads.newsapi_query(domain, start_date, end_date, os.environ["API_KEY_NEWS"])
-    mediacloud = query_downloads.mediacloud(domain, start_date, end_date, os.environ["API_KEY_MC"])
+    mediacloud = query_downloads.mediacloud_query(domain, start_date, end_date, os.environ["API_KEY_MC"])
 
     results = {
         "wayback": wayback,
@@ -31,16 +33,8 @@ def get_responses(domain, start_date, end_date, news_api_key, mc_key):
 
     return results
 
-
 # %%
-mc_sources = pd.read_csv("./data/mediacloud_sources.csv")
-
-# %%
-mc_sources[mc_sources['url']=='http://nytimes.com']['media_id'].values[0]
-
-# %%
-r = query_downloads.mediacloud_query("media_id:1", start_date, end_date, os.environ["API_KEY_MC"])
+r = get_responses(domain, start_date, end_date, news_key, mc_key)
 
 
 # %%
-r = query_downloads.cc_query("cnn.com", start_date, end_date)
