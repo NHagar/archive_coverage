@@ -58,25 +58,45 @@ def newsapi_query(domain, start_date, end_date, api_key):
     return article_info
 
 
-def mediacloud_query(media_id, start_date, end_date, api_key):
+def mediacloud_query(domain, start_date, end_date, api_key):
     mc = mediacloud.api.MediaCloud(api_key)
-    all_stories = []
-    last_processed_stories_id = 0
-    while True:
-        stories = mc.storyList(media_id, 
-                                solr_filter=mc.publish_date_query(start_date, end_date),
-                                rows=1000,
-                                last_processed_stories_id=last_processed_stories_id
-                                )
-        if len(stories)==0:
-            break
-        all_stories.extend(stories)
-        
-        last_processed_stories_id = all_stories[-1]['processed_stories_id']
-        print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
-    stories_df = pd.DataFrame(all_stories)
-    stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
+    media_id = mediacloud_lookup(domain)
+    if len(media_id)>0:
+        all_stories = []
+        last_processed_stories_id = 0
+        while True:
+            stories = mc.storyList(media_id, 
+                                    solr_filter=mc.publish_date_query(start_date, end_date),
+                                    rows=1000,
+                                    last_processed_stories_id=last_processed_stories_id
+                                    )
+            if len(stories)==0:
+                break
+            all_stories.extend(stories)
+            
+            last_processed_stories_id = all_stories[-1]['processed_stories_id']
+            print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
+        stories_df = pd.DataFrame(all_stories)
+        stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
+    else:
+        print("No media ID found for {}".format(domain))
+        stories_df = None
     return stories_df
+
+
+def mediacloud_lookup(domain):
+    mc_sources = pd.read_csv("./data/mediacloud_sources.csv")
+    domain_variants = ["http://", "https://", "http://www.", "https://www."]
+    domain_variants = [i+domain for i in domain_variants]
+    media_id = ""
+    for i in domain_variants:
+        try:
+            mid = mc_sources[mc_sources['url']==i].iloc[0]['media_id']
+            media_id = "media_id:{}".format(mid)
+        except IndexError:
+            pass
+
+    return media_id
 
 
 def cc_query(domain, start_date, end_date):
