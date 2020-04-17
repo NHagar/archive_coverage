@@ -34,7 +34,27 @@ def get_responses(domain, start_date, end_date, news_api_key, mc_key):
     return results
 
 # %%
+def response_stats(r):
+    for k,v in r.items():
+        print("Platform: {0}, all records: {1}, unique records: {2}".format(k,
+                                                                            len(v),
+                                                                            len(set(v['url']))))
+    all_links = [v['url'].tolist() for k,v in r.items()]
+    all_links = [i for l in all_links for i in l]
+    unique_links = list(set(all_links))
+    print("Total unique URLs across platforms: {}".format(len(unique_links)))
+
+    return unique_links
+
+
+# %%
 r = get_responses(domain, start_date, end_date, news_key, mc_key)
 
+
+# %%
+links = response_stats(r)
+
+# %%
+links[0:10]
 
 # %%

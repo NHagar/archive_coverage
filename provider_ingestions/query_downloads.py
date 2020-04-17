@@ -57,7 +57,7 @@ def newsapi_query(domain, start_date, end_date, api_key):
                                             from_param=start_date,
                                             to=end_date)
     except newsapi_exception.NewsAPIException as e:
-        new_start_date = datetime.now().date() - timedelta(days=31)
+        new_start_date = datetime.now().date() - timedelta(days=30)
         print("Too far back for free plan. Collecting articles from {} to end.".format(datetime.strftime(new_start_date, "%Y-%m-%d")))
         all_articles = newsapi.get_everything(domains=domain,
                                             from_param=new_start_date,
