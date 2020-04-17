@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 
+from goose3 import Goose
+
 from provider_ingestions import query_downloads
 
 from dotenv import load_dotenv
@@ -48,6 +50,19 @@ def response_stats(r):
 
 
 # %%
+def extract_articles(urls):
+    g = Goose()
+    processed_urls = [g.extract(i) for i in urls]
+    articles = [{"title": i.title,
+                 "body": i.cleaned_text,
+                 "byline": i.authors,
+                 "pub_date": i.publish_date} for i in processed_urls]
+    adf = pd.DataFrame(articles)
+    adf.loc[:, "url"] = urls
+
+    return adf
+
+# %%
 r = get_responses(domain, start_date, end_date, news_key, mc_key)
 
 
@@ -55,6 +70,4 @@ r = get_responses(domain, start_date, end_date, news_key, mc_key)
 links = response_stats(r)
 
 # %%
-links[0:10]
-
-# %%
+test = extract_articles(links[0:10])
