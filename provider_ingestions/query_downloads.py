@@ -51,20 +51,33 @@ def gdelt_query(domain, start_date, end_date):
 
 # TODO: Implement pagination to get all results
 def newsapi_query(domain, start_date, end_date, api_key):
-    newsapi = NewsApiClient(api_key=api_key)
     try:
-        all_articles = newsapi.get_everything(domains=domain,
-                                            from_param=start_date,
-                                            to=end_date)
+        all_articles = run_newsapi_query(domain, start_date, end_date, api_key)
     except newsapi_exception.NewsAPIException as e:
         new_start_date = datetime.now().date() - timedelta(days=30)
         print("Too far back for free plan. Collecting articles from {} to end.".format(datetime.strftime(new_start_date, "%Y-%m-%d")))
-        all_articles = newsapi.get_everything(domains=domain,
-                                            from_param=new_start_date,
-                                            to=end_date)
-    article_info = all_articles['articles']
-    article_info = pd.DataFrame(article_info)
-    return article_info
+        all_articles = run_newsapi_query(domain, new_start_date, end_date, api_key)
+    all_articles = pd.DataFrame(all_articles)
+    return all_articles
+
+def run_newsapi_query(domain, start_date, end_date, api_key):
+    newsapi = NewsApiClient(api_key=api_key)
+    all_articles = []
+    page = 1
+    while True:
+        try:
+            print(page)
+            articles = newsapi.get_everything(domains=domain,
+                                          from_param=start_date,
+                                          to=end_date,
+                                          page=page)
+            article_info = articles['articles']
+            print(len(article_info))
+            all_articles.extend(article_info)
+            page += 1
+        except  newsapi_exception.NewsAPIException as e:
+            break
+    return all_articles
 
 
 def mediacloud_query(domain, start_date, end_date, api_key):
