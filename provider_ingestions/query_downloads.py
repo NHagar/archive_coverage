@@ -49,14 +49,9 @@ def gdelt_query(domain, start_date, end_date):
     df_all = pd.concat(df_all).drop_duplicates()
     return df_all
 
-# TODO: Implement pagination to get all results
+# TODO: Implement day-to-day pagination to get most possible results
 def newsapi_query(domain, start_date, end_date, api_key):
-    try:
-        all_articles = run_newsapi_query(domain, start_date, end_date, api_key)
-    except newsapi_exception.NewsAPIException as e:
-        new_start_date = datetime.now().date() - timedelta(days=30)
-        print("Too far back for free plan. Collecting articles from {} to end.".format(datetime.strftime(new_start_date, "%Y-%m-%d")))
-        all_articles = run_newsapi_query(domain, new_start_date, end_date, api_key)
+    all_articles = run_newsapi_query(domain, start_date, end_date, api_key)
     all_articles = pd.DataFrame(all_articles)
     return all_articles
 
@@ -66,17 +61,21 @@ def run_newsapi_query(domain, start_date, end_date, api_key):
     page = 1
     while True:
         try:
-            print(page)
             articles = newsapi.get_everything(domains=domain,
                                           from_param=start_date,
                                           to=end_date,
                                           page=page)
             article_info = articles['articles']
-            print(len(article_info))
+            if len(article_info)==0:
+                break
             all_articles.extend(article_info)
             page += 1
         except  newsapi_exception.NewsAPIException as e:
-            break
+            if e.get_code()=="parameterInvalid":
+                start_date = datetime.now().date() - timedelta(days=30)
+                pass
+            elif e.get_code()=='maximumResultsReached':
+                break
     return all_articles
 
 

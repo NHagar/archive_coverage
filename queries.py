@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from goose3 import Goose
+from tqdm import tqdm
 
 from provider_ingestions import query_downloads
 
@@ -21,19 +22,19 @@ mc_key = os.environ["API_KEY_MC"]
 
 # %%
 def get_responses(domain, start_date, end_date, news_api_key, mc_key):
-    #wayback = query_downloads.archive_query(domain, start_date, end_date)
-    #gdelt = query_downloads.gdelt_query(domain, start_date, end_date)
+    wayback = query_downloads.archive_query(domain, start_date, end_date)
+    gdelt = query_downloads.gdelt_query(domain, start_date, end_date)
     newsapi = query_downloads.newsapi_query(domain, start_date, end_date, os.environ["API_KEY_NEWS"])
-    #mediacloud = query_downloads.mediacloud_query(domain, start_date, end_date, os.environ["API_KEY_MC"])
+    mediacloud = query_downloads.mediacloud_query(domain, start_date, end_date, os.environ["API_KEY_MC"])
 
-    '''results = {
+    results = {
         "wayback": wayback,
         "gdelt": gdelt,
         "newsapi": newsapi,
         "mediacloud": mediacloud
-    }'''
+    }
 
-    return newsapi
+    return results
 
 # %%
 def response_stats(r):
@@ -43,6 +44,7 @@ def response_stats(r):
                                                                             len(set(v['url']))))
     all_links = [v['url'].tolist() for k,v in r.items()]
     all_links = [i for l in all_links for i in l]
+    all_links = [i.split("?")[0] for i in all_links]
     unique_links = list(set(all_links))
     print("Total unique URLs across platforms: {}".format(len(unique_links)))
 
@@ -52,7 +54,7 @@ def response_stats(r):
 # %%
 def extract_articles(urls):
     g = Goose()
-    processed_urls = [g.extract(i) for i in urls]
+    processed_urls = [g.extract(i) for i in tqdm(urls)]
     articles = [{"title": i.title,
                  "body": i.cleaned_text,
                  "byline": i.authors,
@@ -69,8 +71,8 @@ r = get_responses(domain, start_date, end_date, news_key, mc_key)
 # %%
 links = response_stats(r)
 
+
 # %%
-import importlib
-importlib.reload(query_downloads)
+data = extract_articles(links)
 
 # %%
