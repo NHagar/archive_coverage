@@ -41,7 +41,7 @@ def gdelt_query(domain, start_date, end_date):
         zipfile = ZipFile(BytesIO(page.read()))
         filename = zipfile.namelist()[0]
         df = pd.read_csv(zipfile.open(filename), sep='\t', header=None)
-        nyt_links = df[df[57].str.contains('www.nytimes')][57]
+        nyt_links = df[df[57].str.contains(domain)][57]
         df_filtered = pd.DataFrame({'url': nyt_links, 'timestamp': filename})
         df_filtered.loc[:, 'timestamp'] = df_filtered['timestamp'].map(lambda x: x.split(".")[0])
         df_all.append(df_filtered)

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 from goose3 import Goose
+from lxml.etree import ParserError
 from tqdm import tqdm
 
 from provider_ingestions import query_downloads
@@ -52,9 +53,26 @@ def response_stats(r):
 
 
 # %%
+def initial_pass(links, domain, start_date, end_date):
+    init_len = len(links)
+    p = [i for i in links if domain in i]
+    p = [i for i in p if "/{}/".format(start_date.year) in i or "/{}/".format(end_date.year) in i]
+    p = [i for i in p if ".js" not in i]
+    print("Links removed: {}".format(init_len-len(p)))
+    return p
+
+
+
+# %%
 def extract_articles(urls):
     g = Goose()
-    processed_urls = [g.extract(i) for i in tqdm(urls)]
+    processed_urls = []
+    for i in tqdm(urls):
+        try:
+            processed = g.extract(i)
+            processed_urls.append(processed)
+        except ParserError as e:
+            pass
     articles = [{"title": i.title,
                  "body": i.cleaned_text,
                  "byline": i.authors,
@@ -70,9 +88,10 @@ r = get_responses(domain, start_date, end_date, news_key, mc_key)
 
 # %%
 links = response_stats(r)
-
+l_processed = initial_pass(links, domain, start_date, end_date)
 
 # %%
-data = extract_articles(links)
+data = extract_articles(l_processed)
+
 
 # %%
