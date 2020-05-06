@@ -1,5 +1,6 @@
 # %%
 import os
+import re
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -15,8 +16,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # %%
-start_date = datetime.strptime("2020-03-01", "%Y-%m-%d")
-end_date = datetime.strptime("2020-03-31", "%Y-%m-%d")
+start_date = datetime.strptime("2020-04-01", "%Y-%m-%d")
+end_date = datetime.strptime("2020-04-30", "%Y-%m-%d")
 domain = "vox.com"
 news_key = os.environ["API_KEY_NEWS"]
 mc_key = os.environ["API_KEY_MC"]
@@ -51,18 +52,6 @@ def response_stats(r):
 
     return unique_links
 
-
-# %%
-def initial_pass(links, domain, start_date, end_date):
-    init_len = len(links)
-    p = [i for i in links if domain in i]
-    p = [i for i in p if "/{}/".format(start_date.year) in i or "/{}/".format(end_date.year) in i]
-    p = [i for i in p if ".js" not in i]
-    print("Links removed: {}".format(init_len-len(p)))
-    return p
-
-
-
 # %%
 def extract_articles(urls):
     g = Goose()
@@ -88,10 +77,10 @@ r = get_responses(domain, start_date, end_date, news_key, mc_key)
 
 # %%
 links = response_stats(r)
-l_processed = initial_pass(links, domain, start_date, end_date)
+
 
 # %%
-data = extract_articles(l_processed)
+data = extract_articles(links[0:50])
 
 
 # %%
