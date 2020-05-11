@@ -9,6 +9,7 @@ from newsapi import NewsApiClient
 from bs4 import BeautifulSoup
 from warcio.archiveiterator import ArchiveIterator
 from newsapi import newsapi_exception
+from tqdm import tqdm
 
 def archive_query(domain, start_date, end_date):
     start_date = 10000*start_date.year + 100*start_date.month + start_date.day
@@ -127,7 +128,7 @@ def cc_query(domain, start_date, end_date):
     cc_files = requests.get("https://commoncrawl.s3.amazonaws.com/?prefix=crawl-data/CC-NEWS/{0}/{1}".format(year, month))
     soup = BeautifulSoup(cc_files.text)
     urls = ["https://commoncrawl.s3.amazonaws.com/{}".format(i.text) for i in soup.find_all("key")]
-    results = [get_records(i, domain) for i in urls]
+    results = [get_records(i, domain) for i in tqdm(urls)]
     results = [i for l in results for i in l]
 
     return results
