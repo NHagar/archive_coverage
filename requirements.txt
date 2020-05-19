@@ -1,5 +1,3 @@
-requests==2.22.0
-pandas==0.25.3
 mediacloud==3.7.5
 newsapi-python==0.2.6
 beautifulsoup4==4.8.2
