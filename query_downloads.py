@@ -10,6 +10,8 @@ from bs4 import BeautifulSoup
 from warcio.archiveiterator import ArchiveIterator
 from newsapi import newsapi_exception
 from tqdm import tqdm
+import aiohttp
+import asyncio
 
 def archive_query(domain, start_date, end_date):
     start_date = 10000*start_date.year + 100*start_date.month + start_date.day
@@ -121,6 +123,20 @@ def mediacloud_lookup(domain):
     return media_id
 
 
+async def get_records(url, domain):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            records = []
+            resp = await response.read()
+            for record in ArchiveIterator(resp, arc2warc=True):
+                if record.rec_type == 'response':
+                    if record.http_headers.get_header('Content-Type') == 'text/html':
+                        uri = record.rec_headers.get_header('WARC-Target-URI')
+                        if domain in uri:
+                            records.append(uri)
+            return records
+
+
 def cc_query(domain, start_date, end_date):
     year = str(start_date.year)
     month = str(start_date.month)
@@ -128,20 +144,8 @@ def cc_query(domain, start_date, end_date):
     cc_files = requests.get("https://commoncrawl.s3.amazonaws.com/?prefix=crawl-data/CC-NEWS/{0}/{1}".format(year, month))
     soup = BeautifulSoup(cc_files.text)
     urls = ["https://commoncrawl.s3.amazonaws.com/{}".format(i.text) for i in soup.find_all("key")]
-    results = [get_records(i, domain) for i in tqdm(urls)]
-    results = [i for l in results for i in l]
+    loop = asyncio.get_event_loop()
+    coroutines = [get_records(i, domain) for i in urls]
+    results = loop.run_until_complete(asyncio.gather(*coroutines))
 
     return results
-
-
-def get_records(url, domain):
-    resp = requests.get(url, stream=True)
-    records = []
-
-    for record in ArchiveIterator(resp.raw, arc2warc=True):
-        if record.rec_type == 'response':
-            if record.http_headers.get_header('Content-Type') == 'text/html':
-                uri = record.rec_headers.get_header('WARC-Target-URI')
-                if domain in uri:
-                    records.append(uri)
-    return records
