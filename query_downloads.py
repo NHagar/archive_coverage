@@ -127,7 +127,7 @@ async def get_records(url, domain):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             records = []
-            resp = await response.read()
+            resp = await response.content.readchunk()
             for record in ArchiveIterator(resp, arc2warc=True):
                 if record.rec_type == 'response':
                     if record.http_headers.get_header('Content-Type') == 'text/html':
