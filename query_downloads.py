@@ -109,7 +109,7 @@ def mediacloud_query(domain, start_date, end_date, api_key):
 
 
 def mediacloud_lookup(domain):
-    mc_sources = pd.read_csv("./data/mediacloud_sources.csv")
+    mc_sources = pd.read_csv("mediacloud_sources.csv")
     domain_variants = ["http://", "https://", "http://www.", "https://www."]
     domain_variants = [i+domain for i in domain_variants]
     media_id = ""
