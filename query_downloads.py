@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta
 import requests
 import pandas as pd
@@ -5,10 +6,9 @@ import mediacloud.api
 from urllib.request import urlopen
 from io import BytesIO
 from zipfile import ZipFile
-from newsapi import NewsApiClient
+from newsapi import NewsApiClient, newsapi_exception
 from bs4 import BeautifulSoup
 from warcio.archiveiterator import ArchiveIterator
-from newsapi import newsapi_exception
 from tqdm import tqdm
 import aiohttp
 import asyncio
@@ -54,32 +54,47 @@ def gdelt_query(domain, start_date, end_date):
 
 # TODO: Implement day-to-day pagination to get most possible results
 def newsapi_query(domain, start_date, end_date, api_key):
-    all_articles = run_newsapi_query(domain, start_date, end_date, api_key)
-    all_articles = pd.DataFrame(all_articles)
+    newsapi = NewsApiClient(api_key=api_key)
+    try:
+        articles = newsapi.get_everything(domains=domain,
+                                        from_param=start_date,
+                                        to=end_date,
+                                        page_size=100)
+    except newsapi_exception.NewsAPIException as e:
+        if e.get_code()=="parameterInvalid":
+            start_date = datetime.now().date() - timedelta(days=30)
+            print(f"""The free plan doesn't go back that far. Your new query ranges from
+                {start_date} to {end_date}""")
+            articles = newsapi.get_everything(domains=domain,
+                                            from_param=start_date,
+                                            to=end_date,
+                                            page_size=100)
+        else:
+            print(e)
+
+    starting_articles = articles['articles']
+    additional_records = articles['totalResults'] - 100
+    pages = range(2, math.ceil(additional_records/100) + 1)
+    print(f"There are {additional_records if additional_records > 0 else 0} additional records")
+    try:
+        for i in pages:
+            print(f"page {i}")
+            extra_articles = newsapi.get_everything(domains=domain,
+                                                    from_param=start_date,
+                                                    to=end_date,
+                                                    page_size=100,
+                                                    page=i)
+            starting_articles.extend(extra_articles['articles'])
+    except newsapi_exception.NewsAPIException as e:
+        if e.get_code()=="maximumResultsReached":
+            print(e.get_message())
+        else:
+            print(e)
+
+
+    all_articles = pd.DataFrame(starting_articles)
     return all_articles
 
-def run_newsapi_query(domain, start_date, end_date, api_key):
-    newsapi = NewsApiClient(api_key=api_key)
-    all_articles = []
-    page = 1
-    while True:
-        try:
-            articles = newsapi.get_everything(domains=domain,
-                                          from_param=start_date,
-                                          to=end_date,
-                                          page=page)
-            article_info = articles['articles']
-            if len(article_info)==0:
-                break
-            all_articles.extend(article_info)
-            page += 1
-        except  newsapi_exception.NewsAPIException as e:
-            if e.get_code()=="parameterInvalid":
-                start_date = datetime.now().date() - timedelta(days=30)
-                pass
-            elif e.get_code()=='maximumResultsReached':
-                break
-    return all_articles
 
 
 def mediacloud_query(domain, start_date, end_date, api_key):
