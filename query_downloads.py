@@ -116,7 +116,11 @@ def mediacloud_query(domain, start_date, end_date, api_key):
             last_processed_stories_id = all_stories[-1]['processed_stories_id']
             print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
         stories_df = pd.DataFrame(all_stories)
-        stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
+        try:
+            stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
+        except KeyError as e:
+            print(f"No stories found for {domain}")
+            stories_df = None
     else:
         print("No media ID found for {}".format(domain))
         stories_df = None
