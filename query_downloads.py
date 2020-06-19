@@ -63,22 +63,22 @@ def newsapi_query(domain, start_date, end_date, api_key):
     except newsapi_exception.NewsAPIException as e:
         if e.get_code()=="parameterInvalid":
             start_date = datetime.now().date() - timedelta(days=30)
-            print(f"""The free plan doesn't go back that far. Your new query ranges from
+            print(f"""NEWSAPI: The free plan doesn't go back that far. Your new query ranges from
                 {start_date} to {end_date}""")
             articles = newsapi.get_everything(domains=domain,
                                             from_param=start_date,
                                             to=end_date,
                                             page_size=100)
         else:
-            print(e)
+            print(f"NEWSAPI: {e}")
 
     starting_articles = articles['articles']
     additional_records = articles['totalResults'] - 100
     pages = range(2, math.ceil(additional_records/100) + 1)
-    print(f"There are {additional_records if additional_records > 0 else 0} additional records")
+    print(f"NEWSAPI: There are {additional_records if additional_records > 0 else 0} additional records")
     try:
         for i in pages:
-            print(f"page {i}")
+            print(f"NEWSAPI: page {i}")
             extra_articles = newsapi.get_everything(domains=domain,
                                                     from_param=start_date,
                                                     to=end_date,
@@ -87,9 +87,9 @@ def newsapi_query(domain, start_date, end_date, api_key):
             starting_articles.extend(extra_articles['articles'])
     except newsapi_exception.NewsAPIException as e:
         if e.get_code()=="maximumResultsReached":
-            print(e.get_message())
+            print(f"NEWSAPI: {e.get_message()}")
         else:
-            print(e)
+            print(f"NEWSAPI: {e}")
 
 
     all_articles = pd.DataFrame(starting_articles)
@@ -114,15 +114,15 @@ def mediacloud_query(domain, start_date, end_date, api_key):
             all_stories.extend(stories)
             
             last_processed_stories_id = all_stories[-1]['processed_stories_id']
-            print("stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
+            print("MEDIACLOUD: stories processed: {0} - last id: {1}".format(len(all_stories), last_processed_stories_id))
         stories_df = pd.DataFrame(all_stories)
         try:
             stories_df = stories_df[['collect_date', 'publish_date', 'url', 'title']]
         except KeyError as e:
-            print(f"No stories found for {domain}")
+            print(f"MEDIACLOUD: No stories found for {domain}")
             stories_df = None
     else:
-        print("No media ID found for {}".format(domain))
+        print("MEDIACLOUD: No media ID found for {}".format(domain))
         stories_df = None
     return stories_df
 
